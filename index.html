@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Битва районов • Байконур</title>
+  <meta name="description" content="Telegram Mini App: Битва районов Байконура" />
+  <link rel="icon" href="./assets/logo.svg" type="image/svg+xml">
+  <link rel="preload" href="./assets/bg.svg" as="image">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <div class="bg"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand__logo" src="./assets/logo.svg" alt="Битва районов" />
+      <div class="brand__text">
+        <div class="brand__title">Битва районов</div>
+        <div class="brand__subtitle">Байконур • ежедневный сезон</div>
+      </div>
+    </div>
+    <button class="iconBtn" id="btnSettings" aria-label="Настройки">⚙️</button>
+  </header>
+
+  <main class="wrap" id="app">
+    <section class="card" id="screenOnboarding" hidden>
+      <h1>Выбери район</h1>
+      <p class="muted">Стань представителем района и набирай очки каждый день. Это MVP без сервера: прогресс хранится у тебя.</p>
+      <div class="grid" id="districtGrid"></div>
+      <button class="primary" id="btnStart" disabled>Начать</button>
+      <div class="tiny muted">Подсказка: позже можно сменить район в настройках (с обнулением личного вклада).</div>
+    </section>
+
+    <section class="card" id="screenHome" hidden>
+      <div class="row">
+        <div>
+          <div class="muted">Твой район</div>
+          <div class="big" id="myDistrictName">—</div>
+        </div>
+        <div class="stat">
+          <div class="muted">Личный вклад</div>
+          <div class="big" id="myScore">0</div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row">
+        <div class="stat">
+          <div class="muted">Серия дней</div>
+          <div class="big" id="streak">0</div>
+        </div>
+        <div class="stat">
+          <div class="muted">Энергия</div>
+          <div class="big" id="energy">0</div>
+        </div>
+        <div class="stat">
+          <div class="muted">Сегодня</div>
+          <div class="big" id="todayPoints">0</div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <h2>Задания</h2>
+      <div class="list">
+        <button class="tile" id="btnPatrol">
+          <div class="tile__icon">🎯</div>
+          <div class="tile__body">
+            <div class="tile__title">Патруль района</div>
+            <div class="tile__desc">30 секунд: нажимай на цели. Чем точнее — тем больше очков.</div>
+          </div>
+          <div class="tile__meta">+до 120</div>
+        </button>
+
+        <button class="tile" id="btnQuiz">
+          <div class="tile__icon">🚀</div>
+          <div class="tile__body">
+            <div class="tile__title">Космо-викторина</div>
+            <div class="tile__desc">5 вопросов про космос и Байконур. За серию — бонус.</div>
+          </div>
+          <div class="tile__meta">+до 150</div>
+        </button>
+
+        <button class="tile" id="btnCheckin">
+          <div class="tile__icon">📍</div>
+          <div class="tile__body">
+            <div class="tile__title">Чек‑ин в городе</div>
+            <div class="tile__desc">Опционально: дай геолокацию. Если ты рядом с Байконуром — получишь бонус.</div>
+          </div>
+          <div class="tile__meta">+80</div>
+        </button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row">
+        <button class="secondary" id="btnSeason">Сезон</button>
+        <button class="secondary" id="btnShare">Поделиться</button>
+      </div>
+      <div class="tiny muted">«Сезон» сейчас работает как красивый демо-экран без общего сервера. Можно подключить сервер позже.</div>
+    </section>
+
+    <section class="card" id="screenPatrol" hidden>
+      <div class="row">
+        <div>
+          <div class="muted">Режим</div>
+          <div class="big">Патруль</div>
+        </div>
+        <div class="stat">
+          <div class="muted">Время</div>
+          <div class="big" id="patrolTime">30</div>
+        </div>
+      </div>
+
+      <div class="arena" id="arena">
+        <div class="arena__hud">
+          <div class="chip">Очки: <span id="patrolScore">0</span></div>
+          <div class="chip">Комбо: <span id="patrolCombo">x1</span></div>
+        </div>
+        <!-- targets are injected here -->
+      </div>
+
+      <div class="row">
+        <button class="secondary" id="btnPatrolExit">Назад</button>
+        <button class="primary" id="btnPatrolStart">Старт</button>
+      </div>
+      <div class="tiny muted">Совет: попадай быстро подряд — комбо растёт.</div>
+    </section>
+
+    <section class="card" id="screenQuiz" hidden>
+      <div class="row">
+        <div>
+          <div class="muted">Режим</div>
+          <div class="big">Космо‑викторина</div>
+        </div>
+        <div class="stat">
+          <div class="muted">Вопрос</div>
+          <div class="big"><span id="quizStep">1</span>/5</div>
+        </div>
+      </div>
+      <div class="quizQ" id="quizQ">—</div>
+      <div class="grid2" id="quizAnswers"></div>
+      <div class="row">
+        <button class="secondary" id="btnQuizExit">Назад</button>
+        <button class="secondary" id="btnQuizNext" disabled>Дальше</button>
+      </div>
+      <div class="tiny muted" id="quizHint">Выбери вариант ответа.</div>
+    </section>
+
+    <section class="card" id="screenSeason" hidden>
+      <div class="row">
+        <div>
+          <div class="muted">Сезон</div>
+          <div class="big">Таблица районов</div>
+        </div>
+        <div class="stat">
+          <div class="muted">День сезона</div>
+          <div class="big" id="seasonDay">—</div>
+        </div>
+      </div>
+      <p class="muted">Это демо‑таблица без общего сервера: она складывает твой вклад + «импульс сезона», чтобы было интересно.</p>
+      <div class="table" id="seasonTable"></div>
+      <div class="row">
+        <button class="secondary" id="btnSeasonBack">Назад</button>
+        <button class="primary" id="btnSeasonBoost">Супер‑вклад</button>
+      </div>
+      <div class="tiny muted">Супер‑вклад тратит энергию и добавляет очки сегодня.</div>
+    </section>
+
+    <section class="card" id="screenSettings" hidden>
+      <h2>Настройки</h2>
+
+      <div class="setting">
+        <div>
+          <div class="muted">Район</div>
+          <div class="big" id="settingsDistrict">—</div>
+        </div>
+        <button class="secondary" id="btnChangeDistrict">Сменить</button>
+      </div>
+
+      <div class="setting">
+        <div>
+          <div class="muted">Сбросить прогресс</div>
+          <div class="tiny muted">Удалит локальные данные (очки/серия/энергия).</div>
+        </div>
+        <button class="danger" id="btnReset">Сброс</button>
+      </div>
+
+      <div class="setting">
+        <div>
+          <div class="muted">Режим Telegram</div>
+          <div class="tiny muted" id="tgStatus">—</div>
+        </div>
+        <button class="secondary" id="btnTheme">Подстроить тему</button>
+      </div>
+
+      <div class="row">
+        <button class="secondary" id="btnSettingsBack">Назад</button>
+      </div>
+
+      <div class="tiny muted">
+        MVP: без сервера. Для настоящего общего рейтинга см. папку <code>server/</code> в репозитории.
+      </div>
+    </section>
+
+    <div class="toast" id="toast" hidden></div>
+  </main>
+
+  <script src="./telegram.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
